@@ -97,7 +97,7 @@ PendingTransactionFilter ([callback])
 
 ## Contributing
 
-Please help better the ecosystem by submitting issues and pull requests to default. We need all the help we can get to build the absolute best linting standards and utilities. We follow the AirBigNumberB linting standard. Please read more about contributing to `ethjs-filter` in the `CONTRIBUTING.md`.
+Please help better the ecosystem by submitting issues and pull requests to default. We need all the help we can get to build the absolute best linting standards and utilities. We follow the AirBigNumberB linting standard.
 
 <!--
 ## Guides
@@ -157,7 +157,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
-
-## Original Port Author
-
-Richard Moore <me@ricmoo.com>
