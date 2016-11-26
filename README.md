@@ -32,7 +32,7 @@
 
 <br />
 
-A simple wrapper around the `eth-query` module with formatting for numbers, hex value and data structures.
+A simple module for handling Ethereum RPC filters that require watching.
 
 ## Install
 
