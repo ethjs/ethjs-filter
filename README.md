@@ -48,31 +48,31 @@ const EthFilter = require('ethjs-filter');
 const eth = new Eth(providerObject);
 const filers = new EthFilter(eth);
 
-// new filter
+
 const filter = new filers.Filter({}, cb); // optional callback
 filter.watch((error, result) => {
   /* result null [{
-      "logIndex": "0x1", // 1
-      "blockNumber":"0x1b4" // 436
+      "logIndex": "0x1",
+      "blockNumber":"0x1b4"
       "blockHash": "0x8216c578...",
       "transactionHash":  "0xdf829c5a...",
-      "transactionIndex": "0x0", // 0
+      "transactionIndex": "0x0",
       "address": "0x16c...",
       "data":"0x000000000...",
-      "topics": ["0x59ebeb..."]
+      "topics": [...]
     }] */
 });
-filter.stopWatching();
+filter.stopWatching(cb); // optional callback
 
-// new block filter
-const filter = new filers.BlockFilter(cb); // optional callback
+
+const filter = new filers.BlockFilter();
 filter.watch((error, result) => {
   // result null ['0x0902900...', '0xsf2030d1...']
 });
 filter.stopWatching();
 
-// new pending transaction filter
-const filter = new filers.PendingTransactionFilter(cb); // optional callback
+
+const filter = new filers.PendingTransactionFilter();
 filter.watch((error, result) => {
   // result null ['0xfd234829...', '0xsf2030d1...']
 });
