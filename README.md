@@ -52,13 +52,13 @@ const filers = new EthFilter(eth);
 const filter = new filers.Filter({}, cb); // optional callback
 filter.watch((error, result) => {
   /* result null [{
-      "logIndex": "0x1",
-      "blockNumber":"0x1b4"
+      "logIndex": <BigNumber ...>,
+      "blockNumber": <BigNumber ...>,
       "blockHash": "0x8216c578...",
       "transactionHash":  "0xdf829c5a...",
-      "transactionIndex": "0x0",
+      "transactionIndex": <BigNumber ...>,
       "address": "0x16c...",
-      "data":"0x000000000...",
+      "data": "0x000000000...",
       "topics": [...]
     }] */
 });
