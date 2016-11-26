@@ -41,7 +41,7 @@ function filters(filterName, query) {
 function constructFilter(filterName, query) {
   const filterMethods = filters(filterName, query);
   const filter = filterMethods[filterName];
-  filter.prototype.watch = function watch(callback) {
+  filter.prototype.watch = function Watch(callback) {
     const self = this;
     self.interval = setInterval(() => {
       if (self.filterId !== null) {
@@ -51,13 +51,13 @@ function constructFilter(filterName, query) {
       }
     }, self.delay);
   };
-  filter.prototype.stopWatching = function stopWatching(callback) {
+  filter.prototype.stopWatching = function stopWatching(stopWatchingCalback) {
     const self = this;
     if (self.filterId !== null) {
       clearInterval(self.interval);
       query.uninstallFilter(self.filterId, (uninstallError, uninstallResilt) => {
         self.filterId = null;
-        callback(uninstallError, uninstallResilt);
+        stopWatchingCalback(uninstallError, uninstallResilt);
       });
     }
   };

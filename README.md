@@ -85,14 +85,14 @@ A simple module to help manage filters that require watching for `getFilterChang
 
 Each filter has a single interval that can be stopped. `stopWatching` clears the `interval` and uninstalls the filter.
 
-Note, this design may change to support multiple watchers. However, there is a benifit to simple design with a single input and output source.
+Note, this design may change to support multiple watchers. However, there is a benifit to simple design with a single input (i.e. `filter constructor`) and output (i.e. `watch callback`) source.
 
 ## Supported Filters
 
 ```
 Filter (param [, callback])
-BlockFilter ([, callback])
-PendingTransactionFilter ([, callback])
+BlockFilter ([callback])
+PendingTransactionFilter ([callback])
 ```
 
 ## Contributing
