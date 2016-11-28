@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/silentcicero/ethjs-filter.git"
+    "url": "git+ssh://git@github.com/ethjs/ethjs-filter.git"
   },
   "devDependencies": {
     "babel-eslint": "7.1.0",
@@ -49,9 +49,9 @@
   "author": "Nick Dodson <nick.dodson@consensys.net>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/silentcicero/ethjs-filter/issues"
+    "url": "https://github.com/ethjs/ethjs-filter/issues"
   },
-  "homepage": "https://github.com/silentcicero/ethjs-filter#readme",
+  "homepage": "https://github.com/ethjs/ethjs-filter#readme",
   "babel": {
     "presets": [
       "es2015"
