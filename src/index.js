@@ -73,13 +73,16 @@ function constructFilter(filterName, query) {
  * @returns {Object} output an EthFilter instance
  * @throws error if new is not used
  */
+
 function EthFilter(query) {
   const self = this;
   if (!(self instanceof EthFilter)) { throw new Error('the EthFilter object must be instantiated with `new` flag.. (e.g. `const filters = new EthFilter(query);`)'); }
+  if (typeof query !== 'object') { throw new Error('the EthFilter object must be instantiated with an EthQuery instance (e.g. `const filters = new EthFilter(new EthQuery(provider));`). See github.com/ethjs/ethjs-query for more details..'); }
 
   self.Filter = constructFilter('Filter', query);
   self.BlockFilter = constructFilter('BlockFilter', query);
   self.PendingTransactionFilter = constructFilter('PendingTransactionFilter', query);
 }
 
+// export EthFilter
 module.exports = EthFilter;
