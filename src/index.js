@@ -65,8 +65,18 @@ function constructFilter(filterName, query) {
   return filter;
 }
 
+/**
+ * EthFilter constructor, intakes a query, helps manage filter event polling
+ *
+ * @method EthFilter
+ * @param {Object} query the `ethjs-query` or `eth-query` object
+ * @returns {Object} output an EthFilter instance
+ * @throws error if new is not used
+ */
 function EthFilter(query) {
   const self = this;
+  if (!(self instanceof EthFilter)) { throw new Error('the EthFilter object must be instantiated with `new` flag.. (e.g. `const filters = new EthFilter(query);`)'); }
+
   self.Filter = constructFilter('Filter', query);
   self.BlockFilter = constructFilter('BlockFilter', query);
   self.PendingTransactionFilter = constructFilter('PendingTransactionFilter', query);

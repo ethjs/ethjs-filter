@@ -34,6 +34,17 @@ describe('EthFilter', () => {
       assert.equal(typeof filter.stopWatching, 'function');
     });
 
+    it('should throw if constructor not with new', (done) => {
+      const eth = new Eth(provider);
+
+      try {
+        const filters = EthFilter(eth); // eslint-disable-line
+      } catch (error) {
+        assert.equal(typeof error, 'object');
+        done();
+      }
+    });
+
     it('should construct Filter eth_newFilter properly without callback', () => {
       const eth = new Eth(provider);
       const filters = new EthFilter(eth);
