@@ -48,81 +48,93 @@ npm install --save ethjs-filter
 ## Usage
 
 ```js
+const HttpProvider = require('ethjs-provider-http');
 const Eth = require('ethjs-query');
 const EthFilter = require('ethjs-filter');
-const eth = new Eth(providerObject);
-const filers = new EthFilter(eth);
+const eth = new Eth(new HttpProvider('http://localhost:8545'));
+const filters = new EthFilter(eth);
 
 
-const filter = new filers.Filter({}, cb); // optional callback
-filter.watch((error, result) => {
-  /* result null [{
-      "logIndex": <BigNumber ...>,
-      "blockNumber": <BigNumber ...>,
-      "blockHash": "0x8216c578...",
-      "transactionHash":  "0xdf829c5a...",
-      "transactionIndex": <BigNumber ...>,
-      "address": "0x16c...",
-      "data": "0x000000000...",
-      "topics": [...]
-    }] */
+const filter = new filters.Filter({ delay: 300 })
+.new({ toBlock: 500 })
+.then((result) => {
+  // result <BigNumber ...> filterId
+})
+.catch((error) => {
+  // result null
 });
-filter.stopWatching(cb); // optional callback
-
-
-const filter = new filers.BlockFilter();
-filter.watch((error, result) => {
-  // result null ['0x0902900...', '0xsf2030d1...']
+filter.watch((result) => {
+  // result [{...}, ...] (fires multiple times)
 });
-filter.stopWatching();
+filter.uninstall(cb);
 
 
-const filter = new filers.PendingTransactionFilter();
-filter.watch((error, result) => {
+const filter = new filters.BlockFilter()
+.at(7)
+filter.watch((result) => {
+  // result [{...}, ...] (fires multiple times)
+});
+filter.uninstall(cb);
+
+
+const filter = new filters.PendingTransactionFilter()
+.new()
+.then((result) => {
+  // result <BigNumber ...> filterId
+})
+.catch((error) => {
+  // result null
+});
+
+const watcher = filter.watch((error, result) => {
   // result null ['0xfd234829...', '0xsf2030d1...']
 });
-filter.stopWatching();
+watcher.stopWatching(cb);
+
+filter.uninstall()
+.then((result) => {
+  // result true
+})
+.catch((error) => {
+  // result null
+});
 ```
 
 ## About
 
-A simple module to help manage filters that require watching for `getFilterChange`. This module relies on the `ethjs-query` module to be supplied. Watching happens with polling, via a single `setInterval` with a `delay` set by default to `300` milliseconds.
+A simple module to help manage Ethereum RPC filters that supports both callbacks and promises.
 
-Each filter has a single interval that can be stopped. `stopWatching` clears the `interval` and uninstalls the filter.
-
-Note, this design may change to support multiple watchers. However, there is a benifit to simple design with a single input (i.e. `filter constructor`) and output (i.e. `watch callback`) source.
+Note, `.watch` promises only fire once (as Promise standards specify), and will only fire when the watcher result has a length greater than zero (i.e. logs are present).
 
 ## Supported Filters
 
 ```
-Filter (param [, callback])
-BlockFilter ([callback])
-PendingTransactionFilter ([callback])
+Filter                   (options)
+BlockFilter              (options)
+PendingTransactionFilter (options)
 ```
 
 ## Contributing
 
 Please help better the ecosystem by submitting issues and pull requests to default. We need all the help we can get to build the absolute best linting standards and utilities. We follow the AirBNB linting standard and the unix philosophy.
 
-<!--
 ## Guides
 
-You'll find more detailed information on using default and tailoring it to your needs in our guides:
+You'll find more detailed information on using `ethjs-filter` and tailoring it to your needs in our guides:
 
 - [User guide](docs/user-guide.md) - Usage, configuration, FAQ and complementary tools.
-- [Developer guide](docs/developer-guide.md) - Contributing to wafr and writing your own plugins & formatters.
--->
+- [Developer guide](docs/developer-guide.md) - Contributing to `ethjs-filter` and writing your own code and coverage.
 
 ## Help out
 
 There is always a lot of work to do, and will have many rules to maintain. So please help out in any way that you can:
 
-<!-- - Create, enhance, and debug rules (see our guide to ["Working on rules"](./github/CONTRIBUTING.md)). -->
+- Create, enhance, and debug ethjs rules (see our guide to ["Working on rules"](./github/CONTRIBUTING.md)).
 - Improve documentation.
 - Chime in on any open issue or pull request.
-- Open new issues about your ideas for making stylelint better, and pull requests to show us how your idea works.
+- Open new issues about your ideas for making `ethjs-filter` better, and pull requests to show us how your idea works.
 - Add new tests to *absolutely anything*.
-- Create or contribute to ecosystem tools, like the plugins for Atom and Sublime Text.
+- Create or contribute to ecosystem tools, like modules for encoding or contracts.
 - Spread the word.
 
 Please consult our [Code of Conduct](CODE_OF_CONDUCT.md) docs before helping out.

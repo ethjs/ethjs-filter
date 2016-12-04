@@ -3,105 +3,235 @@ const provider = TestRPC.provider();
 const Eth = require('ethjs-query');
 const EthFilter = require('../index.js');
 const assert = require('chai').assert;
-const sha3 = require('ethjs-sha3');
-const abi = require('ethjs-abi');
+const sha3 = require('ethjs-sha3');  // eslint-disable-line
+const abi = require('ethjs-abi');    // eslint-disable-line
 console.warn = function warn() {}; // eslint-disable-line
 
 describe('EthFilter', () => {
-  describe('functionality testing', () => {
+  describe('constructor', () => {
     it('should construct properly', () => {
       const eth = new Eth(provider);
       const filters = new EthFilter(eth);
 
       assert.equal(typeof filters.Filter, 'function');
-      assert.equal(typeof filters.Filter, 'function');
-      assert.equal(typeof filters.Filter, 'function');
+      assert.equal(typeof filters.BlockFilter, 'function');
+      assert.equal(typeof filters.PendingTransactionFilter, 'function');
     });
 
-    it('should construct Filter eth_newFilter properly with callback', (done) => {
+    it('should throw under bad construction', () => {
+      assert.throws(() => {
+        new EthFilter(4354); // eslint-disable-line
+      }, Error);
+      assert.throws(() => {
+        EthFilter({}); // eslint-disable-line
+      }, Error);
+      assert.throws(() => {
+        EthFilter(); // eslint-disable-line
+      }, Error);
+    });
+  });
+
+  describe('Filter', () => {
+    it('should construct the Filter object properly', () => {
       const eth = new Eth(provider);
       const filters = new EthFilter(eth);
+      const filter = new filters.Filter();
 
-      const filter = new filters.Filter({}, (error, result) => {
-        assert.equal(error, null);
-        assert.equal(typeof result, 'object');
-        assert.equal(result.toNumber(10) >= 0, true);
-        done();
-      });
-
-      assert.notEqual(typeof filter.filterId, 'undefined');
+      assert.equal(typeof filter, 'object');
+      assert.equal(typeof filter.at, 'function');
+      assert.equal(typeof filter.new, 'function');
       assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
+      assert.equal(typeof filter.uninstall, 'function');
     });
 
-    it('should throw if constructor not with new', (done) => {
+    it('should set filter id properly with the .at method', () => {
       const eth = new Eth(provider);
+      const filters = new EthFilter(eth);
+      const filter = new filters.Filter();
+      filter.at(7);
+      assert.equal(filter.filterId, 7);
+    });
 
-      try {
-        const filters = EthFilter(eth); // eslint-disable-line
-      } catch (error) {
-        assert.equal(typeof error, 'object');
-        done();
+    it('setup filter with custom delay', () => {
+      const eth = new Eth(provider);
+      const filters = new EthFilter(eth);
+      const filter = new filters.Filter({ delay: 400 });
+      filter.at(7);
+      assert.equal(filter.options.delay, 400);
+    });
+
+    it('should setup a new filter and uninstall with callbacks', (done) => {
+      const eth = new Eth(provider);
+      const filters = new EthFilter(eth);
+      const filter = new filters.Filter();
+      filter.new((error, result) => {
+        assert.equal(error, null);
+        assert.equal(typeof result, 'object');
+        assert.equal(filter.filterId.toNumber(10) >= 0, true);
+
+        filter.uninstall((uninstallError, uninstallResult) => {
+          assert.equal(uninstallError, null);
+          assert.equal(typeof uninstallResult, 'boolean');
+
+          done();
+        });
+      });
+    });
+
+    it('should setup a new filter and uninstall with callbacks and custom object', (done) => {
+      const eth = new Eth(provider);
+      const filters = new EthFilter(eth);
+      const filter = new filters.Filter();
+      filter.new({ fromBlock: 0 }, (error, result) => {
+        assert.equal(error, null);
+        assert.equal(typeof result, 'object');
+        assert.equal(filter.filterId.toNumber(10) >= 0, true);
+
+        filter.uninstall((uninstallError, uninstallResult) => {
+          assert.equal(uninstallError, null);
+          assert.equal(typeof uninstallResult, 'boolean');
+
+          done();
+        });
+      });
+    });
+
+    it('should setup a new filter and handle error', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
       }
-    });
 
-    it('should construct Filter eth_newFilter properly without callback', () => {
-      const eth = new Eth(provider);
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_newFilter') {
+          const fakeEventLog = {
+            id: payload.id,
+            jsonrpc: payload.jsonrpc,
+            error: 'invalid data!',
+            result: [2442384289],
+          };
+
+          self.provider.sendAsync(fakeEventLog, callback);
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
       const filters = new EthFilter(eth);
-      const filter = new filters.Filter({});
-      assert.notEqual(typeof filter.filterId, 'undefined');
-      assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
-    });
+      const filter = new filters.Filter();
+      filter.new({ fromBlock: 0 }, (error, result) => {
+        assert.equal(typeof error, 'object');
+        assert.equal(result, null);
 
-    it('should construct BlockFilter eth_newBlockFilter properly with callback', (done) => {
-      const eth = new Eth(provider);
-      const filters = new EthFilter(eth);
-
-      const filter = new filters.BlockFilter((error, result) => {
-        assert.equal(error, null);
-        assert.equal(typeof result, 'object');
-        assert.equal(result.toNumber(10) >= 0, true);
         done();
       });
-
-      assert.notEqual(typeof filter.filterId, 'undefined');
-      assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
     });
 
-    it('should construct BlockFilter eth_newFilter properly without callback', () => {
-      const eth = new Eth(provider);
+    it('should setup a uninstall filter and handle error', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_uninstallFilter') {
+          const fakeEventLog = {
+            id: payload.id,
+            jsonrpc: payload.jsonrpc,
+            error: 'invalid data!',
+            result: [2442384289],
+          };
+
+          self.provider.sendAsync(fakeEventLog, callback);
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
+      const filters = new EthFilter(eth);
+      const filter = new filters.Filter();
+      filter.new({ fromBlock: 0 }, (error, result) => {
+        assert.equal(error, null);
+        assert.equal(typeof result, 'object');
+        assert.equal(filter.filterId.toNumber(10) >= 0, true);
+
+        filter.uninstall((uninstallError, uninstallResult) => {
+          assert.equal(typeof uninstallError, 'object');
+          assert.equal(uninstallResult, null);
+
+          done();
+        });
+      });
+    });
+
+    it('should setup a uninstall BlockFilter and handle error', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_uninstallFilter') {
+          const fakeEventLog = {
+            id: payload.id,
+            jsonrpc: payload.jsonrpc,
+            error: 'invalid data!',
+            result: [2442384289],
+          };
+
+          self.provider.sendAsync(fakeEventLog, callback);
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
       const filters = new EthFilter(eth);
       const filter = new filters.BlockFilter();
-      assert.notEqual(typeof filter.filterId, 'undefined');
-      assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
-    });
-
-    it('should construct PendingTransactionFilter eth_newPendingTransactionFilter properly with callback', (done) => {
-      const eth = new Eth(provider);
-      const filters = new EthFilter(eth);
-
-      const filter = new filters.PendingTransactionFilter((error, result) => {
+      filter.new({ fromBlock: 0 }, (error, result) => {
         assert.equal(error, null);
         assert.equal(typeof result, 'object');
-        assert.equal(result.toNumber(10) >= 0, true);
-        done();
-      });
+        assert.equal(filter.filterId.toNumber(10) >= 0, true);
 
-      assert.notEqual(typeof filter.filterId, 'undefined');
-      assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
+        filter.uninstall((uninstallError, uninstallResult) => {
+          assert.equal(typeof uninstallError, 'object');
+          assert.equal(uninstallResult, null);
+
+          done();
+        });
+      });
     });
 
-    it('should construct PendingTransactionFilter eth_newPendingTransactionFilter properly without callback', () => {
+    it('should setup a new filter and uninstall with promise and custom object', (done) => {
       const eth = new Eth(provider);
       const filters = new EthFilter(eth);
-      const filter = new filters.PendingTransactionFilter();
-      assert.notEqual(typeof filter.filterId, 'undefined');
-      assert.equal(typeof filter.watch, 'function');
-      assert.equal(typeof filter.stopWatching, 'function');
+      const filter = new filters.Filter();
+      filter.new({ fromBlock: 0 })
+      .catch((error) => {
+        assert.equal(error, null);
+      })
+      .then((result) => {
+        assert.equal(typeof result, 'object');
+        assert.equal(filter.filterId.toNumber(10) >= 0, true);
+
+        filter.uninstall()
+        .catch((uninstallError) => {
+          assert.equal(uninstallError, null);
+        })
+        .then((uninstallResult) => {
+          assert.equal(typeof uninstallResult, 'boolean');
+
+          done();
+        });
+      });
     });
 
     it('Filter watch and stopWatching should function properly', (done) => {
@@ -111,172 +241,244 @@ describe('EthFilter', () => {
       eth.accounts((accountsError, accounts) => {
         var count = 0; // eslint-disable-line
 
-        const filter = new filters.Filter({ fromBlock: 0, toBlock: 'latest', address: accounts[0] });
-        assert.notEqual(typeof filter.filterId, 'undefined');
-        assert.equal(typeof filter.watch, 'function');
-        assert.equal(typeof filter.stopWatching, 'function');
+        const filter = new filters.Filter();
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
 
-        filter.watch((watchError, watchResult) => {
-          assert.equal(watchError, null);
-          assert.equal(Array.isArray(watchResult), true);
-        });
-
-        setTimeout(() => {
-          filter.stopWatching((stopWatchError, stopWatchResult) => {
-            assert.equal(stopWatchError, null);
-            assert.equal(typeof stopWatchResult, 'boolean');
+          const watcher = filter.watch((watchError, watchResult) => {
+            assert.equal(watchError, null);
+            assert.equal(Array.isArray(watchResult), true);
           });
-          done();
-        }, 1400);
 
-        eth.sendTransaction({
-          from: accounts[0],
-          to: accounts[1],
-          value: 3000,
-          gas: 3000000,
-          data: '0x',
-        }, (txError, txResult) => {
-          assert.equal(txError, null);
-          assert.equal(typeof txResult, 'string');
-        });
-      });
-    });
-
-    it('BlockFilter watch and stopWatching should function properly', (done) => {
-      const eth = new Eth(provider);
-      const filters = new EthFilter(eth);
-
-      eth.accounts((accountsError, accounts) => {
-        var count = 0; // eslint-disable-line
-
-        const filter = new filters.BlockFilter();
-        assert.notEqual(typeof filter.filterId, 'undefined');
-        assert.equal(typeof filter.watch, 'function');
-        assert.equal(typeof filter.stopWatching, 'function');
-
-        filter.watch((watchError, watchResult) => {
-          assert.equal(watchError, null);
-          assert.equal(Array.isArray(watchResult), true);
-        });
-
-        setTimeout(() => {
-          filter.stopWatching((stopWatchError, stopWatchResult) => {
-            assert.equal(stopWatchError, null);
-            assert.equal(typeof stopWatchResult, 'boolean');
-          });
-          done();
-        }, 1400);
-
-        eth.sendTransaction({
-          from: accounts[0],
-          to: accounts[1],
-          value: 3000,
-          gas: 3000000,
-          data: '0x',
-        }, (txError, txResult) => {
-          assert.equal(txError, null);
-          assert.equal(typeof txResult, 'string');
-        });
-      });
-    });
-
-    it('PendingTransactionFilter watch and stopWatching should function properly', (done) => {
-      const eth = new Eth(provider);
-      const filters = new EthFilter(eth);
-
-      eth.accounts((accountsError, accounts) => {
-        var count = 0; // eslint-disable-line
-
-        const filter = new filters.PendingTransactionFilter();
-        assert.notEqual(typeof filter.filterId, 'undefined');
-        assert.equal(typeof filter.watch, 'function');
-        assert.equal(typeof filter.stopWatching, 'function');
-
-        filter.watch((watchError, watchResult) => {
-          assert.equal(watchError, null);
-          assert.equal(Array.isArray(watchResult), true);
-        });
-
-        setTimeout(() => {
-          filter.stopWatching((stopWatchError, stopWatchResult) => {
-            assert.equal(stopWatchError, null);
-            assert.equal(typeof stopWatchResult, 'boolean');
-          });
-          done();
-        }, 1400);
-
-        eth.sendTransaction({
-          from: accounts[0],
-          to: accounts[1],
-          value: 3000,
-          gas: 3000000,
-          data: '0x',
-        }, (txError, txResult) => {
-          assert.equal(txError, null);
-          assert.equal(typeof txResult, 'string');
-        });
-      });
-    });
-
-    it('contract usage watch and stopWatching should function properly', (done) => {
-      const eth = new Eth(provider);
-      const filters = new EthFilter(eth);
-
-      eth.accounts((accountsError, accounts) => {
-        eth.sendTransaction({
-          from: accounts[0],
-          gas: 3000000,
-          data: '0x606060405234610000575b61010e806100186000396000f360606040526000357c01000000000000000000000000000000000000000000000000000000009004806360fe47b1146100435780636d4ce63c14610076575b610000565b346100005761005e6004808035906020019091905050610099565b60405180821515815260200191505060405180910390f35b3461000057610083610103565b6040518082815260200191505060405180910390f35b6000816000819055507f10e8e9bc5a1bde3dd6bb7245b52503fcb9d9b1d7c7b26743f82c51cc7cce917d60005433604051808381526020018273ffffffffffffffffffffffffffffffffffffffff1681526020019250505060405180910390a1600190505b919050565b600060005490505b9056',
-        }, (txError, txResult) => {
-          assert.equal(txError, null);
-          assert.equal(typeof txResult, 'string');
-
-          // wait for tx to process, hopefully
           setTimeout(() => {
-            eth.getTransactionReceipt(txResult, (receiptError, receipt) => {
-              assert.equal(txError, null);
-              assert.equal(typeof receipt, 'object');
+            watcher.stopWatching();
+            done();
+          }, 1400);
 
-              const SimpleStoreInterface = [{"constant":false,"inputs":[{"name":"_value","type":"uint256"}],"name":"set","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"get","outputs":[{"name":"storeValue","type":"uint256"}],"payable":false,"type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_newValue","type":"uint256"},{"indexed":false,"name":"_sender","type":"address"}],"name":"SetComplete","type":"event"}]; // eslint-disable-line
-              const setMethodInterface = SimpleStoreInterface[0];
-              const getMethodInterface = SimpleStoreInterface[1]; // eslint-disable-line
-              const setCompleteEventInterface = SimpleStoreInterface[2]; // eslint-disable-line
-              const setCompleteEventTopicHash = sha3('SetComplete(uint256,address)');
+          eth.sendTransaction({
+            from: accounts[0],
+            to: accounts[1],
+            value: 3000,
+            gas: 3000000,
+            data: '0x',
+          }, (txError, txResult) => {
+            assert.equal(txError, null);
+            assert.equal(typeof txResult, 'string');
+          });
+        });
+      });
+    });
 
-              const filter = new filters.Filter({
-                fromBlock: 0,
-                toBlock: 'latest',
-                address: receipt.contractAddress,
-                topics: [setCompleteEventTopicHash],
-              });
-              assert.notEqual(typeof filter.filterId, 'undefined');
-              assert.equal(typeof filter.watch, 'function');
-              assert.equal(typeof filter.stopWatching, 'function');
+    it('Filter watch and uninstall should function properly', (done) => {
+      const eth = new Eth(provider);
+      const filters = new EthFilter(eth);
 
-              filter.watch((watchError, watchResult) => {
-                assert.equal(watchError, null);
-                assert.equal(Array.isArray(watchResult), true);
-              });
+      eth.accounts((accountsError, accounts) => {
+        var count = 0; // eslint-disable-line
 
-              eth.sendTransaction({
-                from: accounts[0],
-                to: receipt.contractAddress,
-                gas: 3000000,
-                data: abi.encodeMethod(setMethodInterface, [10000]),
-              }, (setTxError, setTxResult) => {
-                assert.equal(setTxError, null);
-                assert.equal(typeof setTxResult, 'string');
-              });
+        const filter = new filters.Filter();
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
 
-              setTimeout(() => {
-                filter.stopWatching((stopWatchError, stopWatchResult) => {
-                  assert.equal(stopWatchError, null);
-                  assert.equal(typeof stopWatchResult, 'boolean');
-                });
-                done();
-              }, 1400);
+          filter.watch((watchError, watchResult) => {
+            assert.equal(watchError, null);
+            assert.equal(Array.isArray(watchResult), true);
+          });
+
+          setTimeout(() => {
+            assert.equal(Object.keys(filter.watchers).length, 1);
+
+            filter.uninstall().then((uninstallResult) => {
+              assert.equal(typeof uninstallResult, 'boolean');
+              assert.equal(Object.keys(filter.watchers).length, 0);
+              done();
             });
-          }, 1000);
+          }, 1400);
+
+          eth.sendTransaction({
+            from: accounts[0],
+            to: accounts[1],
+            value: 3000,
+            gas: 3000000,
+            data: '0x',
+          }, (txError, txResult) => {
+            assert.equal(txError, null);
+            assert.equal(typeof txResult, 'string');
+          });
+        });
+      });
+    });
+
+    it('Filter watch and uninstall should function properly with logs', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_getFilterChanges') {
+          callback(null, { result: [{
+            logIndex: '0x0',
+            blockNumber: '0x1b4',
+            blockHash: '0x8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d54',
+            transactionHash: '0xdf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dc23f',
+            transactionIndex: '0x0',
+            address: '0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d',
+            data: '0x0000000000000000000000000000000000000000000000000000000000001194000000000000000000000000ca35b7d915458ef540ade6068dfe2f44e8fa733c',
+            topics: ['0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5'],
+          }] });
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
+      const filters = new EthFilter(eth);
+
+      eth.accounts((accountsError, accounts) => {
+        var count = 0; // eslint-disable-line
+
+        const filter = new filters.Filter();
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
+
+          filter.watch((watchError, watchResult) => {
+            assert.equal(watchError, null);
+            assert.equal(Array.isArray(watchResult), true);
+            assert.equal(watchResult.length, 1);
+            assert.equal(watchResult[0].logIndex.toNumber(10) >= 0, true);
+          });
+
+          setTimeout(() => {
+            assert.equal(Object.keys(filter.watchers).length, 1);
+
+            filter.uninstall().then((uninstallResult) => {
+              assert.equal(typeof uninstallResult, 'boolean');
+              assert.equal(Object.keys(filter.watchers).length, 0);
+              done();
+            });
+          }, 1400);
+
+          eth.sendTransaction({
+            from: accounts[0],
+            to: accounts[1],
+            value: 3000,
+            gas: 3000000,
+            data: '0x',
+          }, (txError, txResult) => {
+            assert.equal(txError, null);
+            assert.equal(typeof txResult, 'string');
+          });
+        });
+      });
+    });
+
+    it('Filter watch with promise single return', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_getFilterChanges') {
+          callback(null, { result: [{
+            logIndex: '0x0',
+            blockNumber: '0x1b4',
+            blockHash: '0x8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d54',
+            transactionHash: '0xdf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dc23f',
+            transactionIndex: '0x0',
+            address: '0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d',
+            data: '0x0000000000000000000000000000000000000000000000000000000000001194000000000000000000000000ca35b7d915458ef540ade6068dfe2f44e8fa733c',
+            topics: ['0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5'],
+          }] });
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
+      const filters = new EthFilter(eth);
+
+      eth.accounts((accountsError, accounts) => {
+        var count = 0; // eslint-disable-line
+
+        const filter = new filters.Filter();
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
+
+          filter.watch()
+          .then((watchResult) => {
+            assert.equal(Array.isArray(watchResult), true);
+            assert.equal(watchResult.length, 1);
+            assert.equal(watchResult[0].logIndex.toNumber(10) >= 0, true);
+            assert.equal(watchResult[0].blockNumber.toNumber(10) >= 0, true);
+            assert.equal(watchResult[0].transactionIndex.toNumber(10) >= 0, true);
+
+            done();
+          })
+          .catch((watchError) => {
+            assert.equal(watchError, null);
+          });
+        });
+      });
+    });
+
+    it('Filter watch with promise single return', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_getFilterChanges') {
+          callback(null, { error: 'invalid filter data' });
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
+      const filters = new EthFilter(eth);
+
+      eth.accounts((accountsError, accounts) => {
+        var count = 0; // eslint-disable-line
+
+        const filter = new filters.Filter();
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
+
+          filter.watch()
+          .catch((watchError) => {
+            assert.equal(typeof watchError, 'object');
+
+            done();
+          });
         });
       });
     });
