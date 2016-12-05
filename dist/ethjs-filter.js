@@ -179,7 +179,7 @@ function constructFilter(filterName, query) {
 
     // if a param object was presented, push that into the inputs
     if (filterName === 'Filter') {
-      filterInputs.push(Object.assign(self.options.defaultFilterObject, {} || args[args.length - 1]));
+      filterInputs.push(Object.assign(self.options.defaultFilterObject, args[args.length - 1] || {}));
     }
 
     return new Promise(function (resolve, reject) {

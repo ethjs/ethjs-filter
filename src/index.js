@@ -1,5 +1,3 @@
-
-
 function constructFilter(filterName, query) {
   function Filter(options) {
     const self = this;
@@ -105,7 +103,7 @@ function constructFilter(filterName, query) {
     // if a param object was presented, push that into the inputs
     if (filterName === 'Filter') {
       filterInputs.push(Object.assign(self.options.defaultFilterObject,
-        ({} || args[args.length - 1])));
+        (args[args.length - 1] || {})));
     }
 
     return new Promise((resolve, reject) => {
