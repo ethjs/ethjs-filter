@@ -234,6 +234,60 @@ describe('EthFilter', () => {
       });
     });
 
+    it('Filter watch should catch thrown decoder error', (done) => {
+      function FakeProvider() {
+        const self = this;
+        self.provider = provider;
+      }
+
+      FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
+        const self = this;
+
+        if (payload.method === 'eth_getFilterChanges') {
+          callback(null, { result: [{
+            logIndex: '0x0',
+            blockNumber: '0x1b4',
+            blockHash: '0x8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d54',
+            transactionHash: '0xdf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dc23f',
+            transactionIndex: '0x0',
+            address: '0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d',
+            data: '0x0000000000000000000000000000000000000000000000000000000000001194000000000000000000000000ca35b7d915458ef540ade6068dfe2f44e8fa733c',
+            topics: ['0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5'],
+          }] });
+        } else {
+          self.provider.sendAsync(payload, callback);
+        }
+      };
+
+      const eth = new Eth(new FakeProvider());
+      const filters = new EthFilter(eth);
+
+      eth.accounts((accountsError, accounts) => {
+        var count = 0; // eslint-disable-line
+
+        const filter = new filters.Filter({
+          decoder: () => { throw new Error('invalid data!!!'); },
+        });
+        filter.new({ fromBlock: 0, toBlock: 'latest', address: accounts[0] })
+        .catch((filterError) => {
+          assert.equal(filterError, null);
+        })
+        .then((filterId) => {
+          assert.equal(typeof filterId, 'object');
+          filter.watch((watchError, watchResult) => {
+            assert.equal(typeof watchError, 'object');
+            assert.equal(watchResult, null);
+
+            filter.uninstall()
+            .then((result) => {
+              assert.equal(typeof result, 'boolean');
+              done();
+            });
+          });
+        });
+      });
+    });
+
     it('Filter watch and stopWatching should function properly', (done) => {
       const eth = new Eth(provider);
       const filters = new EthFilter(eth);

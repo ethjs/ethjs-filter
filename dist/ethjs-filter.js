@@ -78,12 +78,31 @@ function constructFilter(filterName, query) {
     var self = this;
     self.filterId = null;
     self.options = Object.assign({
-      delay: 300
+      delay: 300,
+      decoder: function decodeData(data) {
+        return data;
+      },
+      defaultFilterObject: {}
     }, options || {});
+
     self.watchers = {};
     self.interval = setInterval(function () {
       if (self.filterId !== null && Object.keys(self.watchers).length > 0) {
         query.getFilterChanges(self.filterId, function (changeError, changeResult) {
+          var decodedChangeResults = [];
+          var decodingError = null; // eslint-disable-line
+
+          if (!changeError) {
+            try {
+              changeResult.forEach(function (log, logIndex) {
+                decodedChangeResults[logIndex] = changeResult[logIndex];
+                decodedChangeResults[logIndex].data = self.options.decoder(decodedChangeResults[logIndex].data);
+              });
+            } catch (decodingErrorMesage) {
+              decodingError = new Error('[ethjs-filter] while decoding filter change event data from RPC \'' + JSON.stringify(decodedChangeResults) + '\': ' + decodingErrorMesage);
+            }
+          }
+
           Object.keys(self.watchers).forEach(function (id) {
             var watcher = self.watchers[id];
             if (watcher.stop === true) {
@@ -91,13 +110,18 @@ function constructFilter(filterName, query) {
               return;
             }
 
-            if (changeError) {
-              watcher.reject(changeError);
-            } else if (Array.isArray(changeResult) && changeResult.length > 0) {
-              watcher.resolve(changeResult);
-            }
+            if (decodingError) {
+              watcher.reject(decodingError);
+              watcher.callback(decodingError, null);
+            } else {
+              if (changeError) {
+                watcher.reject(changeError);
+              } else if (Array.isArray(decodedChangeResults) && changeResult.length > 0) {
+                watcher.resolve(decodedChangeResults);
+              }
 
-            watcher.callback(changeError, changeResult);
+              watcher.callback(changeError, decodedChangeResults);
+            }
           });
         });
       }
@@ -155,7 +179,7 @@ function constructFilter(filterName, query) {
 
     // if a param object was presented, push that into the inputs
     if (filterName === 'Filter') {
-      filterInputs.push({} || args[args.length - 1]);
+      filterInputs.push(Object.assign(self.options.defaultFilterObject, {} || args[args.length - 1]));
     }
 
     return new Promise(function (resolve, reject) {
