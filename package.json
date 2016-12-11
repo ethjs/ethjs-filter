@@ -1,9 +1,8 @@
 {
   "name": "ethjs-filter",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A simple filter handler for the Ethereum RPC layer.",
   "main": "lib/index.js",
-  "browser": "dist/ethjs-filter.js",
   "files": [
     "dist",
     "internals",
