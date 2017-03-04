@@ -19,7 +19,9 @@ function constructFilter(filterName, query) {
             try {
               changeResult.forEach((log, logIndex) => {
                 decodedChangeResults[logIndex] = changeResult[logIndex];
-                decodedChangeResults[logIndex].data = self.options.decoder(decodedChangeResults[logIndex].data);
+                if (typeof changeResult[logIndex] === 'object') {
+                  decodedChangeResults[logIndex].data = self.options.decoder(decodedChangeResults[logIndex].data);
+                }
               });
             } catch (decodingErrorMesage) {
               decodingError = new Error(`[ethjs-filter] while decoding filter change event data from RPC '${JSON.stringify(decodedChangeResults)}': ${decodingErrorMesage}`);
